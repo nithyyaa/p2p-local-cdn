@@ -218,3 +218,28 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+
+# --- Virtual environment ---
+.venv/
+
+# --- Node data (machine-specific, never commit) ---
+# Cached chunks, manifests, downloads and the node ID live here.
+# The app recreates these folders on startup.
+storage/
+# Extra storage folders when running a second node on the same laptop
+storage-*/
+
+# --- Secrets ---
+.env
+.env.*
+
+# --- Tooling and OS clutter ---
+.pytest_cache/
+Thumbs.db
+desktop.ini
+.DS_Store
