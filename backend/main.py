@@ -24,6 +24,7 @@ from fastapi import FastAPI, Request
 
 from backend.config import ensure_storage_dirs, load_or_create_node_id, settings
 from backend.origin import create_origin_app
+from backend.peer_manager import PeerManager
 from backend.transfer import ChunkTransferServer
 
 logger = logging.getLogger("p2p.node")
@@ -98,12 +99,15 @@ def detect_ipv4_addresses() -> tuple[str | None, list[str]]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize the node and manage the TCP transfer server lifecycle."""
+    """Initialize the node and manage its background servers."""
     # Prepare storage and initialize this node.
     ensure_storage_dirs(settings)
     app.state.node_id = load_or_create_node_id(settings)
     app.state.started_at = datetime.now(timezone.utc)
     app.state.started_monotonic = time.monotonic()
+
+    # Initialize the manager responsible for peer downloads and local caching.
+    app.state.peer_manager = PeerManager(settings)
 
     # Start the TCP server used to transfer verified chunks between peers.
     transfer_server = ChunkTransferServer(settings)
@@ -153,7 +157,7 @@ def health(request: Request) -> dict[str, Any]:
 
     # The server address that received this request.
     server = request.scope.get("server")
-    # The address of the client that made the request.
+    # The address of the client that made this request.
     client = request.client
 
     return {
@@ -237,6 +241,38 @@ def main() -> None:
         port=port,
         log_level="info",
     )
+
+
+@app.get("/api/chunks/{chunk_hash}")
+def get_chunk_from_peer(
+    chunk_hash: str,
+    peer_host: str,
+    peer_port: int,
+    request: Request,
+) -> dict[str, Any]:
+    """Fetch a chunk from a peer and cache it locally."""
+    try:
+        data = request.app.state.peer_manager.get_chunk(
+            chunk_hash=chunk_hash,
+            peer_host=peer_host,
+            peer_port=peer_port,
+        )
+    except FileNotFoundError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {
+        "status": "ok",
+        "chunk_hash": chunk_hash,
+        "size": len(data),
+        "cached_locally": True,
+    }
 
 
 if __name__ == "__main__":
