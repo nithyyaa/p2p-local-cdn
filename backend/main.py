@@ -23,7 +23,7 @@ import uvicorn
 from fastapi import FastAPI, Request
 
 from backend.config import ensure_storage_dirs, load_or_create_node_id, settings
-
+from backend.origin import create_origin_app
 logger = logging.getLogger("p2p.node")
 
 # Used only to ask the operating system which network adapter it would use
@@ -96,7 +96,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="P2P LAN CDN node", version="0.1.0", lifespan=lifespan)
-
+origin_app = create_origin_app(settings.downloads_dir)
+app.mount("/origin", origin_app)
 
 @app.get("/")
 def root() -> dict[str, str]:
