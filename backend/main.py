@@ -1,7 +1,7 @@
 """FastAPI entry point for one P2P LAN CDN node.
 
-Step 1 scope: start the API, prepare the storage folders and expose
-GET /api/health, so we can prove that two laptops can reach each other.
+Start the API, prepare storage folders, expose GET /api/health,
+mount the HTTP origin server, and manage the TCP chunk-transfer server.
 
 Run from the project folder (D:\\p2p-local-cdn) with the venv active:
 
@@ -24,6 +24,8 @@ from fastapi import FastAPI, Request
 
 from backend.config import ensure_storage_dirs, load_or_create_node_id, settings
 from backend.origin import create_origin_app
+from backend.transfer import ChunkTransferServer
+
 logger = logging.getLogger("p2p.node")
 
 # Used only to ask the operating system which network adapter it would use
@@ -38,11 +40,15 @@ def _is_lan_candidate(ip: str) -> bool:
         addr = ipaddress.IPv4Address(ip)
     except ValueError:
         return False
+
     # 127.x.x.x is loopback (reachable only from this machine).
     # 169.254.x.x is link-local: Windows self-assigns it when an adapter
     # could not get a real address, so other laptops cannot use it.
     return not (
-        addr.is_loopback or addr.is_link_local or addr.is_unspecified or addr.is_multicast
+        addr.is_loopback
+        or addr.is_link_local
+        or addr.is_unspecified
+        or addr.is_multicast
     )
 
 
@@ -56,61 +62,100 @@ def detect_ipv4_addresses() -> tuple[str | None, list[str]]:
         laptops cannot reach.
     """
     primary: str | None = None
+
     probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         probe.connect(_ROUTE_PROBE)
         candidate = probe.getsockname()[0]
+
         if _is_lan_candidate(candidate):
             primary = candidate
     except OSError:
-        pass  # no default route, e.g. not connected to any network
+        pass  # No default route, e.g. not connected to any network.
     finally:
         probe.close()
 
     addresses = [primary] if primary else []
+
     try:
-        infos = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET, socket.SOCK_DGRAM)
+        infos = socket.getaddrinfo(
+            socket.gethostname(),
+            None,
+            socket.AF_INET,
+            socket.SOCK_DGRAM,
+        )
     except socket.gaierror:
         infos = []
+
     for info in infos:
         ip = info[4][0]
+
         if _is_lan_candidate(ip) and ip not in addresses:
             addresses.append(ip)
+
     return primary, addresses
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Runs once when the server starts, before any request is handled.
+    """Initialize the node and manage the TCP transfer server lifecycle."""
+    # Prepare storage and initialize this node.
     ensure_storage_dirs(settings)
     app.state.node_id = load_or_create_node_id(settings)
     app.state.started_at = datetime.now(timezone.utc)
     app.state.started_monotonic = time.monotonic()
+
+    # Start the TCP server used to transfer verified chunks between peers.
+    transfer_server = ChunkTransferServer(settings)
+    transfer_server.start()
+    app.state.transfer_server = transfer_server
+
     logger.info(
         "Node %s (%s) ready. Storage folder: %s",
         app.state.node_id,
         settings.node_name,
         settings.storage_dir,
     )
-    yield
+
+    try:
+        yield
+    finally:
+        # Release the TCP listening socket when the API shuts down.
+        transfer_server.stop()
+        logger.info("TCP chunk-transfer server stopped.")
 
 
-app = FastAPI(title="P2P LAN CDN node", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="P2P LAN CDN node",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+# Mount the HTTP origin server.
 origin_app = create_origin_app(settings.downloads_dir)
 app.mount("/origin", origin_app)
+
 
 @app.get("/")
 def root() -> dict[str, str]:
     """Placeholder until the dashboard is added in a later step."""
-    return {"service": "p2p-lan-cdn-node", "health": "/api/health", "api_docs": "/docs"}
+    return {
+        "service": "p2p-lan-cdn-node",
+        "health": "/api/health",
+        "api_docs": "/docs",
+    }
 
 
 @app.get("/api/health")
 def health(request: Request) -> dict[str, Any]:
     state = request.app.state
     primary, addresses = detect_ipv4_addresses()
-    server = request.scope.get("server")  # this node's (ip, port) the request arrived on
-    client = request.client               # the asker's (ip, port)
+
+    # The server address that received this request.
+    server = request.scope.get("server")
+    # The address of the client that made the request.
+    client = request.client
+
     return {
         "status": "ok",
         "node_id": state.node_id,
@@ -129,7 +174,10 @@ def health(request: Request) -> dict[str, Any]:
         },
         "chunk_size_bytes": settings.chunk_size,
         "started_at": state.started_at.isoformat(timespec="seconds"),
-        "uptime_seconds": round(time.monotonic() - state.started_monotonic, 1),
+        "uptime_seconds": round(
+            time.monotonic() - state.started_monotonic,
+            1,
+        ),
     }
 
 
@@ -138,30 +186,57 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s  %(levelname)-7s %(name)s: %(message)s",
     )
+
     port = settings.api_port
     host = ipaddress.IPv4Address(settings.api_host)
     primary, addresses = detect_ipv4_addresses()
 
-    logger.info("Starting node '%s' on %s:%d", settings.node_name, settings.api_host, port)
-    logger.info("Test on this laptop:      http://127.0.0.1:%d/api/health", port)
+    logger.info(
+        "Starting node '%s' on %s:%d",
+        settings.node_name,
+        settings.api_host,
+        port,
+    )
+    logger.info(
+        "Test on this laptop:      http://127.0.0.1:%d/api/health",
+        port,
+    )
+
     if host.is_loopback:
         logger.warning(
-            "P2P_API_HOST is %s, so other laptops cannot connect. Use 0.0.0.0 for LAN access.",
+            "P2P_API_HOST is %s, so other laptops cannot connect. "
+            "Use 0.0.0.0 for LAN access.",
             settings.api_host,
         )
     else:
         lan_urls = addresses if host.is_unspecified else [settings.api_host]
+
         if not lan_urls:
-            logger.warning("No LAN IPv4 address found. Connect to the hotspot, then restart.")
-        for ip in lan_urls:
-            note = "  (default route)" if ip == primary else ""
-            logger.info("Test from another laptop: http://%s:%d/api/health%s", ip, port, note)
-        if len(lan_urls) > 1:
-            logger.info(
-                "Several addresses found: use the one 'ipconfig' shows under your Wi-Fi adapter."
+            logger.warning(
+                "No LAN IPv4 address found. Connect to the hotspot, then restart."
             )
 
-    uvicorn.run(app, host=settings.api_host, port=port, log_level="info")
+        for ip in lan_urls:
+            note = "  (default route)" if ip == primary else ""
+            logger.info(
+                "Test from another laptop: http://%s:%d/api/health%s",
+                ip,
+                port,
+                note,
+            )
+
+        if len(lan_urls) > 1:
+            logger.info(
+                "Several addresses found: use the one 'ipconfig' shows "
+                "under your Wi-Fi adapter."
+            )
+
+    uvicorn.run(
+        app,
+        host=settings.api_host,
+        port=port,
+        log_level="info",
+    )
 
 
 if __name__ == "__main__":
