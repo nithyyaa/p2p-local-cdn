@@ -243,3 +243,8 @@ storage-*/
 Thumbs.db
 desktop.ini
 .DS_Store
+# --- Frontend dependencies and build output ---
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend_backup/

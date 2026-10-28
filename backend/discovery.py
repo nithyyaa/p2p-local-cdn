@@ -13,8 +13,13 @@ from backend.config import Settings
 class PeerDiscovery:
     """Discover other CDN nodes on the local network using UDP."""
 
-    def __init__(self, settings: Settings):
+    def __init__(
+        self,
+        settings: Settings,
+        node_id: str | None = None,
+    ):
         self.settings = settings
+        self.node_id = node_id
         self.peers: dict[str, dict[str, Any]] = {}
         self.lock = threading.Lock()
         self.running = False
@@ -22,6 +27,7 @@ class PeerDiscovery:
         self.thread: threading.Thread | None = None
         self.announcer_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
+
     def start(self) -> None:
         """Start listening for peer announcements."""
         if self.running:
@@ -65,6 +71,10 @@ class PeerDiscovery:
             peer_id = message.get("node_id")
             peer_name = message.get("node_name")
             peer_port = message.get("transfer_port")
+
+            # Ignore announcements from this node itself.
+            if self.node_id is not None and peer_id == self.node_id:
+                continue
 
             if (
                 not isinstance(peer_id, str)
@@ -119,6 +129,9 @@ class PeerDiscovery:
         if self.announcer_thread is not None and self.announcer_thread.is_alive():
             return
 
+        # Keep the local ID available to the listener.
+        self.node_id = node_id
+
         def broadcast_loop() -> None:
             while self.running:
                 try:
@@ -166,7 +179,3 @@ class PeerDiscovery:
         if self.announcer_thread is not None:
             self.announcer_thread.join(timeout=2.0)
             self.announcer_thread = None
-
-    
-
-
