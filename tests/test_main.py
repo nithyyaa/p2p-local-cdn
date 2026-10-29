@@ -1,10 +1,10 @@
 
 import hashlib
-from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from backend.config import settings
 from backend.main import app
 
 
@@ -26,33 +26,34 @@ def test_download_endpoint_falls_back_to_origin():
         ],
     }
 
+    origin_file = settings.origin_files_dir / "fallback_test.txt"
+    origin_file.parent.mkdir(parents=True, exist_ok=True)
+
     with TestClient(app) as client:
         state = app.state
 
-        # Simulate missing cached data and unavailable peers.
-        with (
-            patch.object(
-                state.peer_manager.chunk_store,
-                "get_chunk",
-                side_effect=FileNotFoundError(chunk_hash),
-            ),
-            patch.object(
-                state.peer_manager,
-                "get_chunk_from_peers",
-                side_effect=ConnectionError("No peers available"),
-            ),
-        ):
-            origin_file = Path("storage/downloads/fallback_test.txt")
-            origin_file.parent.mkdir(parents=True, exist_ok=True)
+        try:
             origin_file.write_bytes(content)
 
-            try:
+            with (
+                patch.object(
+                    state.peer_manager.chunk_store,
+                    "get_chunk",
+                    side_effect=FileNotFoundError(chunk_hash),
+                ),
+                patch.object(
+                    state.peer_manager,
+                    "get_chunk_from_peers",
+                    side_effect=ConnectionError("No peers available"),
+                ),
+            ):
                 response = client.post(
                     "/api/files/download",
                     json={"manifest": manifest},
                 )
 
-                assert response.status_code == 200
-                assert response.content == content
-            finally:
-                origin_file.unlink(missing_ok=True)
+            assert response.status_code == 200, response.text
+            assert response.content == content
+
+        finally:
+            origin_file.unlink(missing_ok=True)
