@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { api, API_BASE, EP, fmtBytes, normTransfer, toList } from '../api';
 import { usePoll } from '../hooks';
@@ -29,6 +30,7 @@ export default function Transfers() {
     setBusy(true);
     setError('');
     setMessage('');
+    setManifest(null);
 
     try {
       const peer = (await api(EP.peers)) as any;
@@ -41,28 +43,24 @@ export default function Transfers() {
       const sourcePeer =
         peers.find((p: any) => p.node_name === 'Nithyasree') ?? peers[0];
 
-      const sourceApi = `http://${sourcePeer.host}:8000`;
-
-      const result = await fetch(`${sourceApi}/api/files/manifest`, {
+      const result = await api('/api/files/peer-manifest', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(import.meta.env.VITE_API_KEY
-            ? { 'X-API-Key': import.meta.env.VITE_API_KEY }
-            : {}),
-        },
-        body: JSON.stringify({ file_name: name }),
+        body: JSON.stringify({
+          file_name: name,
+          peer_host: sourcePeer.host,
+        }),
       });
 
-      const data = await result.json();
+      const data = result as any;
+      const fileManifest = data.manifest ?? data;
 
-      if (!result.ok) {
-        throw new Error(data.detail || `HTTP ${result.status}`);
+      if (!fileManifest.file_name || !Array.isArray(fileManifest.chunks)) {
+        throw new Error('The peer returned an invalid file manifest.');
       }
 
-      setManifest(data.manifest);
+      setManifest(fileManifest);
       setMessage(
-        `Manifest ready: ${data.manifest.file_name} (${fmtBytes(data.manifest.file_size)}).`,
+        `Manifest ready: ${fileManifest.file_name} (${fmtBytes(fileManifest.file_size)}).`,
       );
     } catch (e: any) {
       setError(e.message || 'Could not prepare the file.');
@@ -123,9 +121,9 @@ export default function Transfers() {
     <div style={{ display: 'grid', gap: '1rem' }}>
       <Card title="Download content">
         <p style={{ color: 'var(--muted, #94a3b8)', marginTop: 0 }}>
-          Enter a filename available in this node's origin directory. Peerlight
-          prepares its chunk manifest, retrieves content through its existing
-          cache/peer/origin logic, and verifies chunks.
+          Enter a filename available in a connected peer's origin directory.
+          Peerlight prepares its chunk manifest, retrieves content through its
+          existing cache/peer/origin logic, and verifies chunks.
         </p>
 
         <form
