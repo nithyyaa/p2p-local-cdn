@@ -8,8 +8,10 @@ Run from the project folder with the virtual environment active:
 from __future__ import annotations
 
 import hashlib
+import hmac
 import ipaddress
 import logging
+import os
 import platform
 import socket
 import time
@@ -21,7 +23,7 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from backend.config import ensure_storage_dirs, load_or_create_node_id, settings
@@ -183,6 +185,37 @@ app = FastAPI(
     version="0.3.0",
     lifespan=lifespan,
 )
+
+
+# API key is read from the environment when this module is imported.
+# Set P2P_API_KEY before starting the backend.
+API_KEY = os.environ.get("P2P_API_KEY", "").strip()
+PUBLIC_PATHS = {"/", "/api/health"}
+
+
+@app.middleware("http")
+async def api_key_authentication(request: Request, call_next):
+    """Require an API key for all HTTP routes except basic health checks."""
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    if request.url.path in PUBLIC_PATHS:
+        return await call_next(request)
+
+    if not API_KEY:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "API authentication is not configured."},
+        )
+
+    supplied_key = request.headers.get("X-API-Key", "")
+    if not hmac.compare_digest(supplied_key, API_KEY):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Invalid or missing API key."},
+        )
+
+    return await call_next(request)
 
 # Allow the Vite development frontend to call this API from the browser.
 app.add_middleware(
