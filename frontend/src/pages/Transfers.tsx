@@ -31,7 +31,19 @@ export default function Transfers() {
     setMessage('');
 
     try {
-      const result = await fetch(`${API_BASE}/api/files/manifest`, {
+      const peer = (await api(EP.peers)) as any;
+      const peers = peer.peers ?? [];
+
+      if (peers.length === 0) {
+        throw new Error('No peers are connected. Start Laptop A first.');
+      }
+
+      const sourcePeer =
+        peers.find((p: any) => p.node_name === 'Nithyasree') ?? peers[0];
+
+      const sourceApi = `http://${sourcePeer.host}:8000`;
+
+      const result = await fetch(`${sourceApi}/api/files/manifest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +112,6 @@ export default function Transfers() {
       );
       setManifest(null);
       setFileName('');
-      
     } catch (e: any) {
       setError(e.message || 'Download failed.');
     } finally {
