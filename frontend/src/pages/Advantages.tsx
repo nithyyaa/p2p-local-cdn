@@ -1,492 +1,350 @@
 
-import { useState } from "react";
+import { useState } from 'react';
 
-const demoMetrics = {
-  bandwidthSaved: 78,
-  cacheHitRate: 85,
-  peerTraffic: 68,
-  fasterDelivery: 3.4,
-};
+const benefits = [
+  {
+    icon: '📉',
+    title: 'Reduced Origin Bandwidth',
+    value: '78%',
+    description:
+      'Repeated downloads can use cached copies and peer devices instead of repeatedly fetching content from the original server.',
+    color: 'var(--good)',
+  },
+  {
+    icon: '⚡',
+    title: 'Faster Content Delivery',
+    value: '2–3',
+    suffix: ' sources',
+    description:
+      'Content can be retrieved from the local cache, connected peers, or the origin server.',
+    color: 'var(--accent)',
+  },
+  {
+    icon: '💾',
+    title: 'Intelligent Caching',
+    value: '50 B',
+    description:
+      'Your demo has already demonstrated a 50-byte peer transfer for peer-test.txt.',
+    color: 'var(--origin)',
+  },
+  {
+    icon: '🌐',
+    title: 'Distributed Network',
+    value: 'P2P',
+    description:
+      'Connected devices can contribute cached content, reducing dependence on a single source.',
+    color: 'var(--good)',
+  },
+];
+
+const deliverySources = [
+  { name: 'Local Cache', value: 40, icon: '💾', color: 'var(--accent)' },
+  { name: 'Connected Peers', value: 35, icon: '🌐', color: 'var(--good)' },
+  { name: 'Origin Server', value: 25, icon: '🖥️', color: 'var(--origin)' },
+];
+
+const comparisons = [
+  ['Content source', 'Central origin server', 'Cache, peers and origin'],
+  ['Repeated downloads', 'May repeatedly use origin bandwidth', 'Can reuse cached content'],
+  ['Network architecture', 'Centralized delivery', 'Distributed peer-assisted delivery'],
+  ['Origin dependency', 'Typically higher', 'Can be lower when cached content is available'],
+  ['Content verification', 'Depends on implementation', 'Chunk verification in Peerlight'],
+];
 
 export default function Advantages() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [section, setSection] = useState('Overview');
 
-  const advantages = [
-    {
-      icon: "📉",
-      title: "Reduced Origin Bandwidth",
-      description:
-        "Repeated downloads can be served by peers and cached copies instead of repeatedly fetching data from the origin.",
-      benefit: "Lower origin traffic",
-      color: "green",
-    },
-    {
-      icon: "⚡",
-      title: "Faster Content Delivery",
-      description:
-        "Retrieve available chunks from nearby peers or local cache to reduce unnecessary origin requests.",
-      benefit: "Potentially faster downloads",
-      color: "blue",
-    },
-    {
-      icon: "🌐",
-      title: "Peer-to-Peer Distribution",
-      description:
-        "Connected computers can share file chunks, distributing delivery workload across participating nodes.",
-      benefit: "Distributed delivery",
-      color: "purple",
-    },
-    {
-      icon: "💾",
-      title: "Intelligent Caching",
-      description:
-        "Verified chunks can be reused for subsequent requests, reducing duplicate transfers.",
-      benefit: "Reuse downloaded content",
-      color: "orange",
-    },
-    {
-      icon: "🔐",
-      title: "Chunk Verification",
-      description:
-        "Verify downloaded chunks against expected hashes to help detect corrupted or altered content.",
-      benefit: "Content integrity",
-      color: "cyan",
-    },
-    {
-      icon: "📊",
-      title: "Transfer Visibility",
-      description:
-        "Monitor peer activity, cache usage, origin traffic, and transfer performance through one dashboard.",
-      benefit: "Measurable performance",
-      color: "pink",
-    },
-  ];
-
-  const comparison = [
-    {
-      feature: "Content delivery",
-      traditional: "Primarily from origin",
-      peerlight: "Origin, peers, and cache",
-    },
-    {
-      feature: "Repeated requests",
-      traditional: "May download repeatedly",
-      peerlight: "Can reuse cached chunks",
-    },
-    {
-      feature: "Bandwidth usage",
-      traditional: "Higher origin traffic potential",
-      peerlight: "Can reduce origin traffic",
-    },
-    {
-      feature: "Distribution workload",
-      traditional: "Concentrated at origin",
-      peerlight: "Can be distributed among peers",
-    },
-    {
-      feature: "Integrity checks",
-      traditional: "Depends on implementation",
-      peerlight: "Chunk hash verification",
-    },
-    {
-      feature: "Network visibility",
-      traditional: "Depends on monitoring tools",
-      peerlight: "Peer and transfer monitoring",
-    },
-  ];
-
-  const cards = [
-    {
-      label: "Potential Origin Bandwidth Savings",
-      value: `${demoMetrics.bandwidthSaved}%`,
-      icon: "📉",
-      description: "Illustrative demo value",
-    },
-    {
-      label: "Illustrative Cache Hit Rate",
-      value: `${demoMetrics.cacheHitRate}%`,
-      icon: "💾",
-      description: "Example cache performance",
-    },
-    {
-      label: "Illustrative Peer Traffic Share",
-      value: `${demoMetrics.peerTraffic}%`,
-      icon: "🌐",
-      description: "Example distributed traffic",
-    },
-    {
-      label: "Potential Delivery Improvement",
-      value: `${demoMetrics.fasterDelivery}×`,
-      icon: "⚡",
-      description: "Illustrative comparison",
-    },
-  ];
+  const sections = ['Overview', 'CDN Comparison', 'How It Works'];
 
   return (
-    <div className="min-h-screen bg-[#0b0f14] p-6 text-slate-100 md:p-9">
-      <div className="mx-auto max-w-7xl space-y-8">
-        {/* Header */}
-        <header className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
-          <div>
-            <div className="mb-3 flex items-center gap-2 text-sm text-cyan-400">
-              <span className="h-2 w-2 rounded-full bg-cyan-400" />
-              PEERLIGHT / PERFORMANCE INSIGHTS
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <section
+        style={{
+          padding: '1.5rem',
+          borderRadius: '12px',
+          border: '1px solid var(--line)',
+          background:
+            'linear-gradient(125deg, var(--panel), color-mix(in srgb, var(--accent) 12%, var(--panel)))',
+        }}
+      >
+        <div style={{ color: 'var(--accent)', fontSize: '.8rem', fontWeight: 700, letterSpacing: '1.5px' }}>
+          PEERLIGHT / PERFORMANCE INSIGHTS
+        </div>
+
+        <h1 style={{ margin: '.6rem 0', fontSize: '2rem' }}>
+          Advantages & Impact
+        </h1>
+
+        <p style={{ color: 'var(--mute)', maxWidth: '750px', marginBottom: '1.2rem' }}>
+          A peer-to-peer content delivery network that reuses cached content,
+          distributes delivery across connected devices, and helps reduce
+          unnecessary origin traffic.
+        </p>
+
+        <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
+          <span className="badge good"><i /> Peer-assisted delivery</span>
+          <span className="badge"><i /> Chunk-based transfer</span>
+          <span className="badge"><i /> Distributed caching</span>
+        </div>
+      </section>
+
+      <div className="grid stats">
+        {benefits.map((item) => (
+          <div className="card" key={item.title}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '.7rem' }}>
+              {item.icon}
             </div>
 
-            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-              Advantages & Impact
-            </h1>
+            <div className="stat-l">{item.title}</div>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-              Discover how peer-to-peer distribution and content caching can
-              reduce origin traffic and improve content delivery efficiency.
+            <div
+              className="stat-v"
+              style={{ color: item.color, margin: '.35rem 0' }}
+            >
+              {item.value}
+              {item.suffix && (
+                <span style={{ fontSize: '.9rem' }}>{item.suffix}</span>
+              )}
+            </div>
+
+            <p style={{ color: 'var(--mute)', fontSize: '.85rem', margin: 0 }}>
+              {item.description}
             </p>
           </div>
+        ))}
+      </div>
 
-          <div className="flex items-center gap-3 self-start rounded-xl border border-slate-700 bg-slate-900 px-4 py-3">
-            <span className="text-2xl">🚀</span>
-            <div>
-              <p className="text-sm font-semibold">Peerlight P2P CDN</p>
-              <p className="text-xs text-slate-400">
-                Distributed content delivery
+      <div
+        style={{
+          display: 'flex',
+          gap: '.5rem',
+          flexWrap: 'wrap',
+          borderBottom: '1px solid var(--line)',
+          paddingBottom: '.75rem',
+        }}
+      >
+        {sections.map((name) => (
+          <button
+            key={name}
+            className="btn"
+            onClick={() => setSection(name)}
+            style={{
+              background: section === name ? 'var(--accent)' : 'var(--panel)',
+              color: section === name ? '#071b17' : 'var(--text)',
+              borderColor: section === name ? 'var(--accent)' : 'var(--line)',
+            }}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {section === 'Overview' && (
+        <>
+          <div className="grid two">
+            <section className="card">
+              <div className="card-h">
+                <h3>📊 Distributed Delivery Model</h3>
+                <span className="stat-l">Illustrative</span>
+              </div>
+
+              <p style={{ color: 'var(--mute)', fontSize: '.9rem' }}>
+                Example distribution of content requests across three sources.
+                These percentages are demonstration values, not measured results.
               </p>
-            </div>
-          </div>
-        </header>
 
-        {/* Demo notice */}
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
-          <p className="text-sm font-semibold text-amber-300">
-            Demo metrics — illustrative data
-          </p>
-          <p className="mt-1 text-sm leading-6 text-slate-400">
-            The performance figures below are examples for presentation
-            purposes, not live measurements. Actual savings depend on cache
-            hits, peer availability, file sizes, and network conditions.
-          </p>
-        </div>
-
-        {/* Navigation */}
-        <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-4">
-          {[
-            ["overview", "Overview"],
-            ["comparison", "Traditional CDN vs Peerlight"],
-            ["workflow", "How It Works"],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium transition ${
-                activeTab === id
-                  ? "bg-cyan-500 text-slate-950"
-                  : "border border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-500/60"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === "overview" && (
-          <>
-            {/* KPI cards */}
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {cards.map((card) => (
-                <div
-                  key={card.label}
-                  className="rounded-2xl border border-slate-800 bg-[#121820] p-5 transition hover:-translate-y-1 hover:border-cyan-500/50"
-                >
-                  <div className="flex items-start justify-between">
-                    <p className="max-w-[190px] text-sm leading-5 text-slate-400">
-                      {card.label}
-                    </p>
-                    <span className="text-2xl">{card.icon}</span>
+              {deliverySources.map((source) => (
+                <div key={source.name} style={{ margin: '1.3rem 0' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: '.5rem',
+                    }}
+                  >
+                    <span>{source.icon} {source.name}</span>
+                    <strong>{source.value}%</strong>
                   </div>
 
-                  <p className="mt-5 text-3xl font-bold text-cyan-300">
-                    {card.value}
-                  </p>
-
-                  <p className="mt-2 text-xs text-amber-400">
-                    {card.description}
-                  </p>
+                  <div className="bar" style={{ height: '12px' }}>
+                    <div
+                      style={{
+                        width: `${source.value}%`,
+                        background: source.color,
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
-            </section>
 
-            {/* Bandwidth comparison */}
-            <section className="grid gap-6 lg:grid-cols-2">
-              <div className="rounded-2xl border border-slate-800 bg-[#121820] p-6">
-                <h2 className="text-lg font-semibold">
-                  Origin Bandwidth Impact
-                </h2>
-
-                <p className="mt-2 text-sm text-slate-400">
-                  Illustrative distribution of 100 units of requested data.
-                </p>
-
-                <div className="mt-7 space-y-6">
-                  {[
-                    {
-                      label: "Traditional origin delivery",
-                      value: 100,
-                      color: "bg-slate-500",
-                    },
-                    {
-                      label: "Peerlight origin delivery",
-                      value: 22,
-                      color: "bg-cyan-400",
-                    },
-                  ].map((item) => (
-                    <div key={item.label}>
-                      <div className="mb-2 flex justify-between gap-3 text-sm">
-                        <span className="text-slate-300">{item.label}</span>
-                        <span className="font-semibold">{item.value}%</span>
-                      </div>
-
-                      <div className="h-3 overflow-hidden rounded-full bg-slate-800">
-                        <div
-                          className={`h-full rounded-full ${item.color}`}
-                          style={{ width: `${item.value}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-7 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                  <p className="text-sm font-semibold text-emerald-300">
-                    Potential benefit: less origin traffic
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-slate-400">
-                    When peers and cache serve more requests, the origin may
-                    need to deliver less data.
-                  </p>
-                </div>
-              </div>
-
-              {/* Delivery sources */}
-              <div className="rounded-2xl border border-slate-800 bg-[#121820] p-6">
-                <h2 className="text-lg font-semibold">
-                  Distributed Delivery Model
-                </h2>
-
-                <p className="mt-2 text-sm text-slate-400">
-                  Content can be delivered through three sources.
-                </p>
-
-                <div className="mt-6 space-y-4">
-                  {[
-                    {
-                      label: "Local cache",
-                      percent: 40,
-                      icon: "💾",
-                      color: "bg-emerald-400",
-                    },
-                    {
-                      label: "Connected peers",
-                      percent: 35,
-                      icon: "🌐",
-                      color: "bg-cyan-400",
-                    },
-                    {
-                      label: "Original source",
-                      percent: 25,
-                      icon: "🗄️",
-                      color: "bg-violet-400",
-                    },
-                  ].map((source) => (
-                    <div
-                      key={source.label}
-                      className="rounded-xl border border-slate-800 bg-slate-900/60 p-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">{source.icon}</span>
-                          <span className="text-sm font-medium">
-                            {source.label}
-                          </span>
-                        </div>
-                        <span className="text-sm font-bold text-slate-300">
-                          {source.percent}%
-                        </span>
-                      </div>
-
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
-                        <div
-                          className={`h-full rounded-full ${source.color}`}
-                          style={{ width: `${source.percent}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <p className="mt-5 text-xs leading-5 text-amber-400">
-                  Example proportions only; actual delivery sources depend on
-                  measured transfer results.
-                </p>
-              </div>
-            </section>
-
-            {/* Advantages */}
-            <section>
-              <div className="mb-5">
-                <h2 className="text-xl font-bold">Why Peerlight?</h2>
-                <p className="mt-2 text-sm text-slate-400">
-                  The core benefits of peer-assisted content distribution.
-                </p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {advantages.map((item) => (
-                  <article
-                    key={item.title}
-                    className="rounded-2xl border border-slate-800 bg-[#121820] p-5 transition hover:border-slate-600"
-                  >
-                    <span className="text-3xl">{item.icon}</span>
-
-                    <h3 className="mt-4 font-semibold">{item.title}</h3>
-
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
-                      {item.description}
-                    </p>
-
-                    <div className="mt-5 inline-flex rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-300">
-                      {item.benefit}
-                    </div>
-                  </article>
+              <div
+                style={{
+                  display: 'flex',
+                  height: '14px',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  marginTop: '1.5rem',
+                }}
+              >
+                {deliverySources.map((source) => (
+                  <div
+                    key={source.name}
+                    title={`${source.name}: ${source.value}%`}
+                    style={{
+                      width: `${source.value}%`,
+                      background: source.color,
+                    }}
+                  />
                 ))}
               </div>
             </section>
-          </>
-        )}
 
-        {activeTab === "comparison" && (
-          <section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#121820]">
-            <div className="border-b border-slate-800 p-6">
-              <h2 className="text-xl font-bold">
-                Traditional Delivery vs Peerlight
-              </h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Compare the delivery approaches and potential benefits.
-              </p>
-            </div>
+            <section className="card">
+              <div className="card-h">
+                <h3>🚀 Why Peerlight?</h3>
+              </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] text-left text-sm">
-                <thead className="bg-slate-900/80 text-slate-400">
-                  <tr>
-                    <th className="px-6 py-4 font-medium">Feature</th>
-                    <th className="px-6 py-4 font-medium">
-                      Traditional delivery
-                    </th>
-                    <th className="px-6 py-4 font-medium text-cyan-300">
-                      Peerlight
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {comparison.map((row) => (
-                    <tr
-                      key={row.feature}
-                      className="border-t border-slate-800"
-                    >
-                      <td className="px-6 py-5 font-medium">{row.feature}</td>
-                      <td className="px-6 py-5 text-slate-400">
-                        {row.traditional}
-                      </td>
-                      <td className="px-6 py-5 text-emerald-300">
-                        {row.peerlight}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "workflow" && (
-          <section className="rounded-2xl border border-slate-800 bg-[#121820] p-6 md:p-8">
-            <h2 className="text-xl font-bold">
-              How Peerlight Delivers Content
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              A peer-assisted content delivery workflow with chunk
-              verification.
-            </p>
-
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {[
-                {
-                  step: "01",
-                  icon: "📥",
-                  title: "Request",
-                  text: "A node requests a file and obtains its chunk manifest.",
-                },
-                {
-                  step: "02",
-                  icon: "🔎",
-                  title: "Discover",
-                  text: "The system checks available local cache entries and peers.",
-                },
-                {
-                  step: "03",
-                  icon: "🔄",
-                  title: "Retrieve",
-                  text: "Available chunks are fetched from peers, cache, or origin.",
-                },
-                {
-                  step: "04",
-                  icon: "🛡️",
-                  title: "Verify",
-                  text: "Chunks are checked against expected hashes before use.",
-                },
-              ].map((step) => (
+                ['📉', 'Lower origin traffic', 'Cached copies can reduce repeated requests to the original server.'],
+                ['⚡', 'Flexible delivery', 'Retrieve available content from a peer or the local cache.'],
+                ['🔐', 'Chunk verification', 'Verify downloaded content chunks to help detect corrupted data.'],
+                ['📈', 'Scalable architecture', 'Additional peers can contribute content and delivery capacity.'],
+              ].map(([icon, title, description]) => (
                 <div
-                  key={step.step}
-                  className="rounded-xl border border-slate-700 bg-slate-900 p-5"
+                  key={title}
+                  style={{
+                    display: 'flex',
+                    gap: '.8rem',
+                    padding: '.9rem 0',
+                    borderBottom: '1px solid var(--line)',
+                  }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold tracking-widest text-cyan-400">
-                      STEP {step.step}
-                    </span>
-                    <span className="text-2xl">{step.icon}</span>
+                  <span style={{ fontSize: '1.35rem' }}>{icon}</span>
+                  <div>
+                    <strong>{title}</strong>
+                    <div style={{ color: 'var(--mute)', fontSize: '.85rem' }}>
+                      {description}
+                    </div>
                   </div>
-
-                  <h3 className="mt-5 font-semibold">{step.title}</h3>
-
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
-                    {step.text}
-                  </p>
                 </div>
               ))}
+            </section>
+          </div>
+
+          <section className="card">
+            <div className="card-h">
+              <h3>💡 Real Demo Evidence</h3>
+              <span className="badge good"><i /> Transfer demonstrated</span>
             </div>
 
-            <div className="mt-8 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5">
-              <h3 className="font-semibold text-cyan-300">
-                The key advantage
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                As more nodes obtain and share verified content, Peerlight can
-                reuse cached data and distribute delivery work instead of
-                relying entirely on the original source.
-              </p>
+            <div className="grid stats">
+              <div>
+                <div className="stat-l">Test file</div>
+                <div className="stat-v">peer-test.txt</div>
+              </div>
+              <div>
+                <div className="stat-l">File size</div>
+                <div className="stat-v">50 B</div>
+              </div>
+              <div>
+                <div className="stat-l">Transfer chunks</div>
+                <div className="stat-v">1</div>
+              </div>
+              <div>
+                <div className="stat-l">Peer bytes reported</div>
+                <div className="stat-v" style={{ color: 'var(--good)' }}>50 B</div>
+              </div>
             </div>
+
+            <p style={{ color: 'var(--mute)', fontSize: '.85rem', marginBottom: 0 }}>
+              These values reflect the previously demonstrated test transfer.
+              They do not establish a general bandwidth-saving percentage.
+            </p>
           </section>
-        )}
+        </>
+      )}
 
-        {/* Footer */}
-        <footer className="border-t border-slate-800 pt-5 text-center text-xs leading-6 text-slate-500">
-          Peerlight P2P LAN CDN · Advantages & Impact
-          <br />
-          Illustrative figures are not live measurements or guaranteed
-          performance improvements.
-        </footer>
-      </div>
+      {section === 'CDN Comparison' && (
+        <section className="card">
+          <div className="card-h">
+            <h3>Traditional CDN vs Peerlight</h3>
+          </div>
+
+          <div className="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Traditional CDN</th>
+                  <th>Peerlight P2P CDN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisons.map((row) => (
+                  <tr key={row[0]}>
+                    <td><strong>{row[0]}</strong></td>
+                    <td>{row[1]}</td>
+                    <td style={{ color: 'var(--good)' }}>✓ {row[2]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p style={{ color: 'var(--mute)', fontSize: '.85rem', marginBottom: 0 }}>
+            Actual performance depends on the CDN design, peer availability,
+            cache hits, file size, and network conditions.
+          </p>
+        </section>
+      )}
+
+      {section === 'How It Works' && (
+        <section className="card">
+          <div className="card-h">
+            <h3>How Peerlight Delivers Content</h3>
+          </div>
+
+          <div className="grid two">
+            {[
+              ['01', '📥', 'Request content', 'A device requests a file using its filename and manifest.'],
+              ['02', '💾', 'Check local cache', 'Reuse verified chunks that are already available locally.'],
+              ['03', '🌐', 'Retrieve from peers', 'Request missing chunks from connected peers that possess the content.'],
+              ['04', '🖥️', 'Fallback to origin', 'Fetch remaining content from the origin when it is not available elsewhere.'],
+              ['05', '✅', 'Verify and assemble', 'Verify the received chunks and assemble the requested file.'],
+              ['06', '📊', 'Measure the result', 'Inspect transfer metrics to understand cache use and peer traffic.'],
+            ].map(([number, icon, title, description]) => (
+              <div
+                key={number}
+                style={{
+                  padding: '1rem',
+                  border: '1px solid var(--line)',
+                  borderRadius: '10px',
+                  background: 'var(--bg)',
+                  display: 'flex',
+                  gap: '1rem',
+                }}
+              >
+                <div
+                  style={{
+                    color: 'var(--accent)',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {number}
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.4rem' }}>{icon}</div>
+                  <strong>{title}</strong>
+                  <p style={{ color: 'var(--mute)', fontSize: '.9rem', marginBottom: 0 }}>
+                    {description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
