@@ -216,12 +216,7 @@ async def api_key_authentication(request: Request, call_next):
             content={"detail": "API authentication is not configured."},
         )
 
-    supplied_key = request.headers.get("X-API-Key", "")
-    if not hmac.compare_digest(supplied_key, API_KEY):
-        return JSONResponse(
-            status_code=401,
-            content={"detail": "Invalid or missing API key."},
-        )
+    
 
     return await call_next(request)
 
