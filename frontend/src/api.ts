@@ -26,21 +26,37 @@ export const EP = {
   bandwidth: env.VITE_EP_BANDWIDTH || '/api/bandwidth',
 };
 
-export async function api(path: string): Promise<any> {
+
+export async function api(
+  path: string,
+  options: RequestInit = {},
+): Promise<any> {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), 8000);
 
   try {
     const r = await fetch(API_BASE + path, {
+      ...options,
       signal: c.signal,
       headers: {
         Accept: 'application/json',
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...(API_KEY ? { 'X-API-Key': API_KEY } : {}),
+        ...options.headers,
       },
     });
 
     if (!r.ok) {
-      throw new ApiError(`HTTP ${r.status} ${r.statusText}`, r.status);
+      let detail = `HTTP ${r.status} ${r.statusText}`;
+
+      try {
+        const data = await r.json();
+        detail = data.detail || detail;
+      } catch {
+        // Keep the original HTTP error if the response isn't JSON.
+      }
+
+      throw new ApiError(detail, r.status);
     }
 
     return await r.json();
@@ -57,6 +73,7 @@ export async function api(path: string): Promise<any> {
     clearTimeout(t);
   }
 }
+
 
 export const pick = (o: any, keys: string[], d: any = undefined) => {
   for (const k of keys) {
