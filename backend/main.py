@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import httpx
 import ipaddress
 import logging
 import os
@@ -44,6 +45,13 @@ class ManifestRequest(BaseModel):
     """Request a manifest for a file available from the origin."""
 
     file_name: str = Field(min_length=1, max_length=255)
+
+
+class PeerManifestRequest(BaseModel):
+    """Request a file manifest from a discovered peer."""
+
+    file_name: str = Field(min_length=1, max_length=255)
+    peer_host: str = Field(min_length=1, max_length=255)
 
 
 class DownloadRequest(BaseModel):
@@ -461,6 +469,97 @@ def get_chunk_from_peer(
         "size": len(data),
         "cached_locally": True,
     }
+
+
+@app.post("/api/files/peer-manifest")
+def create_peer_manifest(body: PeerManifestRequest, request: Request) -> dict[str, Any]:
+    """Fetch a manifest from a discovered peer using server-side API authentication."""
+    file_name = body.file_name.strip()
+
+    if (
+        not file_name
+        or Path(file_name).name != file_name
+        or "/" in file_name
+        or "\\" in file_name
+        or file_name in {".", ".."}
+    ):
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+
+    try:
+        peer_ip = ipaddress.ip_address(body.peer_host)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid peer IP address.",
+        ) from exc
+
+    if not peer_ip.is_private:
+        raise HTTPException(
+            status_code=400,
+            detail="Peer must have a private LAN IP address.",
+        )
+
+    # Only allow peers currently advertised by this node's discovery service.
+    discovery: PeerDiscovery = request.app.state.peer_discovery
+    discovered_hosts = {
+        str(peer.get("host"))
+        for peer in discovery.get_peers()
+        if peer.get("host")
+        and peer.get("node_id") != request.app.state.node_id
+    }
+    if str(peer_ip) not in discovered_hosts:
+        raise HTTPException(
+            status_code=403,
+            detail="The requested host is not a currently discovered peer.",
+        )
+
+    if not API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="API authentication is not configured.",
+        )
+
+    peer_url = f"http://{peer_ip}:{settings.api_port}/api/files/manifest"
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                peer_url,
+                headers={"X-API-Key": API_KEY},
+                json={"file_name": file_name},
+            )
+    except httpx.RequestError as exc:
+        logger.warning("Could not contact peer manifest endpoint: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="Could not contact the peer to prepare the file.",
+        ) from exc
+
+    if response.status_code != 200:
+        detail = "The peer could not prepare the requested file."
+        try:
+            peer_detail = response.json().get("detail")
+            if isinstance(peer_detail, str) and peer_detail:
+                detail = peer_detail
+        except (ValueError, AttributeError):
+            pass
+        raise HTTPException(status_code=response.status_code, detail=detail)
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The peer returned an invalid manifest response.",
+        ) from exc
+
+    if not isinstance(data, dict) or not isinstance(data.get("manifest"), dict):
+        raise HTTPException(
+            status_code=502,
+            detail="The peer returned an invalid manifest response.",
+        )
+
+    return data
 
 
 @app.post("/api/files/manifest")
